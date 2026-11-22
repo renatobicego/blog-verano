@@ -1,0 +1,21 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ⚠️ Poné acá los dos emails (los mismos que en firestore.rules)
+    function isMember() {
+      return request.auth != null
+        && request.auth.token.email in ['TU_EMAIL@gmail.com', 'SU_EMAIL@gmail.com'];
+    }
+
+    match /photos/{uid}/{file} {
+      allow read: if isMember();
+      allow create: if isMember()
+        && request.auth.uid == uid
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if isMember() && request.auth.uid == uid;
+    }
+  }
+}

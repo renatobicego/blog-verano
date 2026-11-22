@@ -1,0 +1,38 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ⚠️ Poné acá los dos emails (los mismos que en storage.rules)
+    function isMember() {
+      return request.auth != null
+        && request.auth.token.email in ['TU_EMAIL@gmail.com', 'SU_EMAIL@gmail.com'];
+    }
+
+    match /users/{uid} {
+      allow read: if isMember();
+      allow create, update: if isMember() && request.auth.uid == uid;
+    }
+
+    match /entries/{id} {
+      allow read: if isMember();
+      allow create: if isMember()
+        && request.resource.data.authorUid == request.auth.uid
+        && request.resource.data.type in ['message', 'song', 'place', 'photo']
+        && request.resource.data.createdAt == request.time;
+      allow delete: if isMember() && resource.data.authorUid == request.auth.uid;
+    }
+
+    match /pings/{id} {
+      allow read: if isMember();
+      allow create: if isMember()
+        && request.resource.data.fromUid == request.auth.uid
+        && request.resource.data.createdAt == request.time;
+    }
+
+    // Lo escriben solo las Cloud Functions
+    match /daily/{key} {
+      allow read: if isMember();
+    }
+  }
+}
